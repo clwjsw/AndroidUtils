@@ -1,0 +1,189 @@
+package utils2;
+
+import android.content.Context;
+import android.text.TextUtils;
+
+import com.rudian.rudian.R;
+
+import java.util.regex.Pattern;
+
+import cn.sharesdk.framework.PlatformActionListener;
+import cn.sharesdk.framework.ShareSDK;
+import cn.sharesdk.onekeyshare.OnekeyShare;
+import cn.sharesdk.sina.weibo.SinaWeibo;
+import cn.sharesdk.tencent.qq.QQ;
+import cn.sharesdk.tencent.qzone.QZone;
+import utils.LogUtils;
+
+/**
+ * 第三方分享
+ * Created by Administrator on 2017/6/29.
+ */
+
+public class SharedShow {
+
+    //分享APP 要改网址、标题和文本
+
+    static final String DEFAULT_SHARE_TITLE = "入点文化";
+    static final String DEFAULT_SHARE_CONTENT = "合肥入点文化科技有限公司";
+    static final String DEFAULT_SHARE_LOGO = "http://www.easyinto.cn/shareIco/ic_launcher.png";
+
+    private static final Pattern IMG_URL_PATTERN=Pattern.compile("http\\:\\/\\/[a-zA-z0-9./]+\\.((jpg)|(png)|(gif))");
+
+    private String title;//分享标题
+    private String titleUrl;//分享标题链接
+    private String content;//分享内容
+
+    private String logoHttpUrl;//分享LOGO网络链接
+    private String logoLocalPath;//分享LOGO本地路径
+
+    private String shareUrl;//分享链接
+    private String siteUrl;//地点链接
+
+    private String comment;//分享评论
+
+    private PlatformActionListener platformActionListener;
+
+    public SharedShow() {
+        title = DEFAULT_SHARE_TITLE;
+        content = DEFAULT_SHARE_CONTENT;
+    }
+
+
+    public SharedShow setTitle(String text) {
+        this.title = text;
+        return this;
+    }
+
+    public SharedShow setTitleUrl(String url) {
+        this.titleUrl = url;
+        return this;
+    }
+
+    public SharedShow setContent(String text) {
+        this.content = text;
+        return this;
+    }
+
+    public SharedShow setLogoHttpUrl(String url) {
+        this.logoHttpUrl = url;
+        return this;
+    }
+
+    public SharedShow setLogoLocalPath(String path) {
+        this.logoLocalPath = path;
+        return this;
+    }
+
+
+    public SharedShow setShareUrl(String url) {
+        this.shareUrl = url;
+        return this;
+    }
+
+    public SharedShow setSiteUrl(String siteUrl) {
+        this.siteUrl = siteUrl;
+        return this;
+    }
+
+    public SharedShow setComment(String comment) {
+        this.comment = comment;
+        return this;
+    }
+
+    public SharedShow setOnPlatformActionListener(PlatformActionListener listener) {
+        this.platformActionListener = listener;
+        return this;
+    }
+
+    public void show(Context context) {
+        ShareSDK.initSDK(context);
+        OnekeyShare share = getShareInternal(context);
+        // 启动分享GUI
+        share.show(context);
+    }
+
+    public void showOnlyWeiXin(Context context) {
+        ShareSDK.initSDK(context);
+        OnekeyShare share = getShareInternal(context);
+        share.addHiddenPlatform(QQ.NAME);
+        share.addHiddenPlatform(QZone.NAME);
+        share.addHiddenPlatform(SinaWeibo.NAME);
+        // 启动分享GUI
+        share.show(context);
+    }
+
+
+    private OnekeyShare getShareInternal(Context context) {
+        OnekeyShare share = new OnekeyShare();
+        //关闭sso授权
+        disableSSOWhenAuthorize(share);
+        //创建分享内容
+        createShareContent(share, context.getString(R.string.app_name));
+        //设置分享回调
+        setShareCallback(share);
+        return share;
+    }
+
+
+    private void createShareContent(OnekeyShare share, String site) {
+        // 设置标题，印象笔记、邮箱、信息、微信、人人网和QQ空间等使用
+        share.setTitle(title == null ? DEFAULT_SHARE_TITLE : title);
+
+        //设置分享场所名称
+        //site是分享此内容的网站名称，仅在QQ空间使用
+        share.setSite(site);
+
+        String url;
+        // 设置标题的网络链接，QQ和QQ空间等使用
+        if (!TextUtils.isEmpty(titleUrl) || !TextUtils.isEmpty(shareUrl)) {
+            url = !TextUtils.isEmpty(titleUrl) ? titleUrl : shareUrl;
+            share.setTitleUrl(url);
+        }
+
+        //设置分享内容,所有平台都需要这个字段
+        share.setText(content == null ? DEFAULT_SHARE_CONTENT : content);
+
+        //设置分享LOGO
+        // imagePath是图片的本地路径，Linked-In以外的平台都支持此参数
+        if (!TextUtils.isEmpty(logoLocalPath)) {
+            share.setImagePath(logoLocalPath);//确保SDcard下面存在此张图片
+        } else if (!TextUtils.isEmpty(logoHttpUrl)&&IMG_URL_PATTERN.matcher(logoHttpUrl).matches()) {
+            share.setImageUrl(logoHttpUrl);
+            LogUtils.d(logoHttpUrl);
+        } else {
+            share.setImageUrl(DEFAULT_SHARE_LOGO);
+            LogUtils.d(DEFAULT_SHARE_LOGO);
+        }
+
+
+        //设置分享链接
+        //file:///android/assets/
+        // url仅在微信（包括好友和朋友圈）中使用
+        if (!TextUtils.isEmpty(shareUrl))
+            share.setUrl(shareUrl);
+
+        //设置场所链接
+        // siteUrl是分享此内容的网站地址，仅在QQ空间使用
+        if (!TextUtils.isEmpty(siteUrl) || !TextUtils.isEmpty(shareUrl)) {
+            url = !TextUtils.isEmpty(siteUrl) ? siteUrl : shareUrl;
+            share.setSiteUrl(url);
+        }
+
+        //设置分享评价
+        //仅在人人网和QQ空间使用
+        share.setComment(null == comment ? "" : comment);
+
+
+    }
+
+    private void disableSSOWhenAuthorize(OnekeyShare share) {
+        share.disableSSOWhenAuthorize();
+    }
+
+    private void setShareCallback(OnekeyShare share) {
+        if (null != platformActionListener) {
+            share.setCallback(platformActionListener);
+        }
+    }
+}
