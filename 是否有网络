@@ -1,0 +1,16 @@
+public class NetUtils {
+
+    /**
+     * 网络是否连接
+     *
+     * @param context
+     * @return
+     */
+    public static final boolean isConnected(Context context) {
+        ConnectivityManager mgr = (ConnectivityManager) context
+                .getSystemService(Service.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = mgr.getActiveNetworkInfo();
+        return networkInfo != null && networkInfo.isConnectedOrConnecting();
+    }
+
+}
